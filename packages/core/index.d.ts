@@ -15,6 +15,7 @@ declare module '@rjsf/core' {
         ArrayFieldTemplate?: React.StatelessComponent<ArrayFieldTemplateProps>;
         autoComplete?: string;
         autocomplete?: string; // deprecated
+        children?: React.ReactNode;
         className?: string;
         customFormats?: { [k: string]: string | RegExp | ((data: string) => boolean) };
         disabled?: boolean;
@@ -35,11 +36,11 @@ declare module '@rjsf/core' {
         noValidate?: boolean;
         ObjectFieldTemplate?: React.StatelessComponent<ObjectFieldTemplateProps>;
         omitExtraData?: boolean;
-        onBlur?: (id: string, value: boolean | number | string | null) => void;
+        onBlur?: (id: string, value: any) => void;
         onChange?: (e: IChangeEvent<T>, es?: ErrorSchema) => any;
         onError?: (e: any) => any;
-        onFocus?: (id: string, value: boolean | number | string | null) => void;
-        onSubmit?: (e: ISubmitEvent<T>) => any;
+        onFocus?: (id: string, value: any) => void;
+        onSubmit?: (e: ISubmitEvent<T>, nativeEvent: React.FormEvent<HTMLFormElement>) => any;
         schema: JSONSchema7;
         showErrorList?: boolean;
         tagName?: keyof JSX.IntrinsicElements | React.ComponentType;
@@ -58,7 +59,7 @@ declare module '@rjsf/core' {
             customFormats?: FormProps<T>['customFormats'],
         ) => { errors: AjvError[]; errorSchema: ErrorSchema };
         onChange: (formData: T, newErrorSchema: ErrorSchema) => void;
-        onBlur: (id: string, value: boolean | number | string | null) => void;
+        onBlur: (id: string, value: any) => void;
         submit: () => void;
     }
 
@@ -98,16 +99,18 @@ declare module '@rjsf/core' {
         > {
         id: string;
         schema: JSONSchema7;
+        uiSchema: UiSchema;
         value: any;
         required: boolean;
         disabled: boolean;
         readonly: boolean;
         autofocus: boolean;
+        placeholder: string;
         onChange: (value: any) => void;
-        options: { [key: string]: boolean | number | string | object | null };
+        options: NonNullable<UiSchema['ui:options']>;
         formContext: any;
-        onBlur: (id: string, value: boolean | number | string | null) => void;
-        onFocus: (id: string, value: boolean | number | string | null) => void;
+        onBlur: (id: string, value: any) => void;
+        onFocus: (id: string, value: any) => void;
         label: string;
         multiple: boolean;
         rawErrors: string[];
@@ -123,7 +126,7 @@ declare module '@rjsf/core' {
         formData: T;
         errorSchema: ErrorSchema;
         onChange: (e: IChangeEvent<T> | any, es?: ErrorSchema) => any;
-        onBlur: (id: string, value: boolean | number | string | null) => void;
+        onBlur: (id: string, value: any) => void;
         registry: {
             fields: { [name: string]: Field };
             widgets: { [name: string]: Widget };
@@ -141,7 +144,7 @@ declare module '@rjsf/core' {
 
     export type Field = React.StatelessComponent<FieldProps> | React.ComponentClass<FieldProps>;
 
-    export type FieldTemplateProps = {
+    export type FieldTemplateProps<T = any> = {
         id: string;
         classNames: string;
         label: string;
@@ -161,6 +164,11 @@ declare module '@rjsf/core' {
         schema: JSONSchema7;
         uiSchema: UiSchema;
         formContext: any;
+        formData: T;
+        onChange: (value: T) => void;
+        onKeyChange: (value: string) => () => void;
+        onDropPropertyClick: (value: string) => () => void;
+        registry: FieldProps['registry'];
     };
 
     export type ArrayFieldTemplateProps<T = any> = {
@@ -179,8 +187,9 @@ declare module '@rjsf/core' {
             hasRemove: boolean;
             hasToolbar: boolean;
             index: number;
-            onDropIndexClick: (index: number) => (event: any) => void;
-            onReorderClick: (index: number, newIndex: number) => (event: any) => void;
+            onAddIndexClick: (index: number) => (event?: any) => void;
+            onDropIndexClick: (index: number) => (event?: any) => void;
+            onReorderClick: (index: number, newIndex: number) => (event?: any) => void;
             readonly: boolean;
             key: string;
         }[];
@@ -200,18 +209,23 @@ declare module '@rjsf/core' {
         TitleField: React.StatelessComponent<{ id: string; title: string; required: boolean }>;
         title: string;
         description: string;
+        disabled: boolean;
         properties: {
             content: React.ReactElement;
             name: string;
             disabled: boolean;
             readonly: boolean;
+            hidden: boolean;
         }[];
+        onAddClick: (schema: JSONSchema7) => () => void;
+        readonly: boolean;
         required: boolean;
         schema: JSONSchema7;
         uiSchema: UiSchema;
         idSchema: IdSchema;
         formData: T;
         formContext: any;
+        registry: FieldProps['registry'];
     };
 
     export type AjvError = {
@@ -274,19 +288,21 @@ declare module '@rjsf/core' {
 
         export const ADDITIONAL_PROPERTY_FLAG: string;
 
+        export function canExpand(schema: JSONSchema7, uiSchema: UiSchema, formData: any): boolean;
+
         export function getDefaultRegistry(): FieldProps['registry'];
 
         export function getSchemaType(schema: JSONSchema7): string;
 
         export function getWidget(
             schema: JSONSchema7,
-            widget: Widget,
+            widget: Widget | string,
             registeredWidgets?: { [name: string]: Widget },
-        ): Widget | Error;
+        ): Widget;
 
         export function hasWidget(
             schema: JSONSchema7,
-            widget: Widget,
+            widget: Widget | string,
             registeredWidgets?: { [name: string]: Widget },
         ): boolean;
 
@@ -307,6 +323,8 @@ declare module '@rjsf/core' {
 
         export function getUiOptions(uiSchema: UiSchema): UiSchema['ui:options'];
 
+        export function getDisplayLabel(schema: JSONSchema7, uiSchema: UiSchema, rootSchema?: JSONSchema7): boolean;
+
         export function isObject(thing: any): boolean;
 
         export function mergeObjects(obj1: object, obj2: object, concatArrays?: boolean): object;
@@ -317,7 +335,7 @@ declare module '@rjsf/core' {
 
         export function isConstant(schema: JSONSchema7): boolean;
 
-        export function toConstant(schema: JSONSchema7): JSONSchema7Type | JSONSchema7['const'] | Error;
+        export function toConstant(schema: JSONSchema7): JSONSchema7Type | JSONSchema7['const'];
 
         export function isSelect(_schema: JSONSchema7, definitions?: FieldProps['registry']['definitions']): boolean;
 
@@ -333,7 +351,11 @@ declare module '@rjsf/core' {
 
         export function allowAdditionalItems(schema: JSONSchema7): boolean;
 
-        export function optionsList(schema: JSONSchema7): { label: string; value: string }[];
+        export function optionsList(schema: JSONSchema7):  {
+            schema?: JSONSchema7Definition;
+            label: string;
+            value: string;
+        }[];
 
         export function guessType(value: any): JSONSchema7TypeName;
 
@@ -387,6 +409,10 @@ declare module '@rjsf/core' {
 
         export function toDateString(dateObject: DateObject, time?: boolean): string;
 
+        export function utcToLocal(jsonDate: string): string;
+
+        export function localToUTC(dateString: string): Date;
+
         export function pad(num: number, size: number): string;
 
         export function setState(instance: React.Component, state: any, callback: Function): void;
@@ -406,6 +432,8 @@ declare module '@rjsf/core' {
             options: JSONSchema7[],
             definitions: FieldProps['registry']['definitions'],
         ): number;
+
+        export function schemaRequiresTrueValue(schema: JSONSchema7): boolean;
     }
 }
 

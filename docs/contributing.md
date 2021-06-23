@@ -2,27 +2,15 @@
 
 ## Development server
 
-When developing a package, first run from the root-level directory:
+When developing, run the following from the root-level directory:
 
 ```bash
-lerna bootstrap
-```
-
-Then, go to the package directory and then run `npm start` to live-recompile the files for that package. For example, to edit the core package:
-
-```bash
-cd packages/core
+npm install
+npm run build
 npm start
 ```
 
-Finally, to run the playground, go to the playground directory and run `npm start` in another terminal.
-
-```bash
-cd packages/playground
-npm start
-```
-
-A live development server showcasing components with hot reload enabled will then run at [localhost:8080](http://localhost:8080).
+All packages will be live-built, and a live development server showcasing components with hot reload enabled will then run at [localhost:8080](http://localhost:8080).
 
 ## Coding style
 
@@ -53,15 +41,21 @@ The full report can be seen by opening `./coverage/lcov-report/index.html`.
 
 ## Releasing
 
-To release, run:
+To release, go to the master branch and then run:
 
 ```bash
 lerna version
-lerna run build
-lerna publish from-git
 ```
 
-Make sure you use [semver](https://semver.org/) for version numbering. Once a new version has been released, create a release in the Github "Releases" tab and add the version history.
+Make sure you use [semver](https://semver.org/) for version numbering when selecting the version.
+The command above will create a new version tag and push it to GitHub. Then, create a release in
+the Github "Releases" tab and add a description of the changes in the new release.
+
+This will trigger a GitHub Actions pipeline that will build and publish all packages to npm.
+
+The package is published through an automation token belonging to the
+[rjsf-bot](https://www.npmjs.com/~rjsf-bot) user on npm. This token
+is stored as the `NPM_TOKEN` secret on GitHub Actions.
 
 ### Releasing docs
 
