@@ -8,7 +8,7 @@ function BaseInput(props) {
     console.log("No id for", props);
     throw new Error(`no id for props ${JSON.stringify(props)}`);
   }
-  const {
+  var {
     value,
     readonly,
     disabled,
@@ -66,6 +66,12 @@ function BaseInput(props) {
     return props.onChange(value === "" ? options.emptyValue : value);
   };
 
+  // If its a constant value then we want to disable the control and set the default value
+  if (typeof schema.const !== "undefined") {
+    value = schema.const;
+    disabled = true;
+  }
+
   return [
     <input
       key={inputProps.id}
@@ -81,7 +87,9 @@ function BaseInput(props) {
       onFocus={onFocus && (event => onFocus(inputProps.id, event.target.value))}
     />,
     schema.examples ? (
-      <datalist id={`examples_${inputProps.id}`}>
+      <datalist
+        key={`datalist_${inputProps.id}`}
+        id={`examples_${inputProps.id}`}>
         {[
           ...new Set(
             schema.examples.concat(schema.default ? [schema.default] : [])
