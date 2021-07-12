@@ -1,6 +1,6 @@
 // Originally from https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/@rjsf/core/index.d.ts
 
-declare module '@rjsf/core' {
+declare module '@sage-bionetworks/rjsf-core' {
     import * as React from 'react';
     import { JSONSchema7, JSONSchema7Definition, JSONSchema7Type, JSONSchema7TypeName } from 'json-schema';
 
