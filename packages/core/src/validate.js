@@ -1,13 +1,15 @@
 import toPath from "lodash/toPath";
 import Ajv from "ajv";
-let ajv = createAjvInstance();
+let ajv;
+let previousSchema;
+let previousMetaSchemas;
+let previousFormats;
 import { deepEquals, getDefaultFormState } from "./utils";
 
-let formerCustomFormats = null;
-let formerMetaSchema = null;
 const ROOT_SCHEMA_PREFIX = "__rjsf_rootSchema";
 
 import { isObject, mergeObjects } from "./utils";
+import _ from "lodash";
 
 function createAjvInstance() {
   const ajv = new Ajv({
@@ -161,6 +163,8 @@ function transformAjvErrors(errors = []) {
   });
 }
 
+let validate;
+let compileError;
 /**
  * This function processes the formData with a user `validate` contributed
  * function, which receives the form data and an `errorHandler` object that
@@ -178,55 +182,62 @@ export default function validateFormData(
   const rootSchema = schema;
   formData = getDefaultFormState(schema, formData, rootSchema, true);
 
-  const newMetaSchemas = !deepEquals(formerMetaSchema, additionalMetaSchemas);
-  const newFormats = !deepEquals(formerCustomFormats, customFormats);
+  const schemaChanged = !deepEquals(previousSchema, schema);
+  const metaSchemasChanged = !deepEquals(
+    previousMetaSchemas,
+    additionalMetaSchemas
+  );
+  const formatsChanged = !deepEquals(previousFormats, customFormats);
 
-  if (newMetaSchemas || newFormats) {
-    ajv = createAjvInstance();
-  }
-
-  // add more schemas to validate against
   if (
-    additionalMetaSchemas &&
-    newMetaSchemas &&
-    Array.isArray(additionalMetaSchemas)
+    validate == null ||
+    schemaChanged ||
+    metaSchemasChanged ||
+    formatsChanged
   ) {
-    ajv.addMetaSchema(additionalMetaSchemas);
-    formerMetaSchema = additionalMetaSchemas;
+    compileError = null;
+    previousSchema = schema;
+    previousMetaSchemas = additionalMetaSchemas;
+    previousFormats = customFormats;
+    ajv = createAjvInstance();
+
+    // add more schemas to validate against
+    if (additionalMetaSchemas && Array.isArray(additionalMetaSchemas)) {
+      ajv.addMetaSchema(additionalMetaSchemas);
+    }
+
+    // add more custom formats to validate against
+    if (customFormats && isObject(customFormats)) {
+      Object.keys(customFormats).forEach(formatName => {
+        ajv.addFormat(formatName, customFormats[formatName]);
+      });
+    }
+    try {
+      validate = ajv.compile(schema);
+    } catch (e) {
+      compileError = e;
+    }
   }
 
-  // add more custom formats to validate against
-  if (customFormats && newFormats && isObject(customFormats)) {
-    Object.keys(customFormats).forEach(formatName => {
-      ajv.addFormat(formatName, customFormats[formatName]);
-    });
-
-    formerCustomFormats = customFormats;
+  let errors;
+  if (!compileError) {
+    validate(formData);
+    errors = transformAjvErrors(validate.errors);
+  } else {
+    errors = transformAjvErrors(ajv.errors);
   }
-
-  let validationError = null;
-  try {
-    ajv.validate(schema, formData);
-  } catch (err) {
-    validationError = err;
-  }
-
-  let errors = transformAjvErrors(ajv.errors);
-  // Clear errors to prevent persistent errors, see #1104
-
-  ajv.errors = null;
 
   const noProperMetaSchema =
-    validationError &&
-    validationError.message &&
-    typeof validationError.message === "string" &&
-    validationError.message.includes("no schema with key or ref ");
+    compileError &&
+    compileError.message &&
+    typeof compileError.message === "string" &&
+    compileError.message.includes("no schema with key or ref ");
 
   if (noProperMetaSchema) {
     errors = [
       ...errors,
       {
-        stack: validationError.message,
+        stack: compileError.message,
       },
     ];
   }
@@ -241,7 +252,7 @@ export default function validateFormData(
       ...errorSchema,
       ...{
         $schema: {
-          __errors: [validationError.message],
+          __errors: [compileError.message],
         },
       },
     };
@@ -269,7 +280,7 @@ export default function validateFormData(
  * Recursively prefixes all $ref's in a schema with `ROOT_SCHEMA_PREFIX`
  * This is used in isValid to make references to the rootSchema
  */
-export function withIdRefPrefix(schemaNode) {
+function _withIdRefPrefix(schemaNode) {
   let obj = schemaNode;
   if (schemaNode.constructor === Object) {
     obj = { ...schemaNode };
@@ -294,6 +305,17 @@ export function withIdRefPrefix(schemaNode) {
   return obj;
 }
 
+// Convert all arguments to one long string. This can be expensive with multiple, large objects, so use sparingly
+const cacheKeyFn = (...args) => args.map(arg => JSON.stringify(arg)).join("_");
+
+/**
+ * _withIdRefPrefix creates a new schema object every time it runs, which prevents us from utilizing AJV's cache, triggering a compile every run
+ * We can memoize the function to reuse schemas that we've already resolved, which lets us hit AJV's cache and avoid expensive recompiles
+ */
+export const withIdRefPrefix = _.memoize(_withIdRefPrefix, cacheKeyFn);
+
+let compiledSubschemaMap = new WeakMap();
+let withIdRefPrefixMap = new WeakMap();
 /**
  * Validates data against a schema, returning true if the data is valid, or
  * false otherwise. If the schema is invalid, then this function will return
@@ -301,27 +323,32 @@ export function withIdRefPrefix(schemaNode) {
  */
 export function isValid(schema, data, rootSchema) {
   try {
-    // add the rootSchema. if it has no $id, use ROOT_SCHEMA_PREFIX as the cache key.
-    // then rewrite the schema ref's to point to the rootSchema
-    // this accounts for the case where schema have references to models
-    // that lives in the rootSchema but not in the schema in question.
-    let rootSchemaAdded;
-    if (rootSchema.$id) {
-      rootSchemaAdded = !!ajv.getSchema(rootSchema.$id);
+    let subschemaAjv;
+    if (compiledSubschemaMap.has(rootSchema)) {
+      subschemaAjv = compiledSubschemaMap.get(rootSchema);
     } else {
-      rootSchemaAdded = !!ajv.getSchema(ROOT_SCHEMA_PREFIX);
+      // add the rootSchema, using the ROOT_SCHEMA_PREFIX as the cache key.
+
+      subschemaAjv = createAjvInstance();
+      subschemaAjv.addSchema(rootSchema, ROOT_SCHEMA_PREFIX);
+      compiledSubschemaMap.set(rootSchema, subschemaAjv);
     }
 
-    if (!rootSchemaAdded) {
-      if (rootSchema.$id) {
-        ajv.addSchema(rootSchema);
-      } else {
-        ajv.addSchema(rootSchema, ROOT_SCHEMA_PREFIX);
-      }
+    // rewrite the schema ref's to point to the rootSchema
+    // this accounts for the case where schema have references to models
+    // that lives in the rootSchema but not in the schema in question.
+    let prefixedSchema;
+    if (withIdRefPrefixMap.has(schema)) {
+      prefixedSchema = withIdRefPrefixMap.get(schema);
+    } else {
+      prefixedSchema = _withIdRefPrefix(schema);
+      withIdRefPrefixMap.set(schema, prefixedSchema);
     }
-    return ajv.validate(withIdRefPrefix(schema), data);
+
+    return subschemaAjv.validate(prefixedSchema, data);
   } catch (e) {
     console.warn("Encountered error while validating schema", e);
     return false;
   }
 }
+// export const isValid = _.memoize(_isValid, cacheKeyFn);
