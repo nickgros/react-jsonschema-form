@@ -1,8 +1,8 @@
 import React from "react";
 
-import { utils } from "@rjsf/core";
+import { utils } from "@sage-bionetworks/rjsf-core";
 
-import { ArrayFieldTemplateProps, IdSchema } from "@rjsf/core";
+import { ArrayFieldTemplateProps, IdSchema } from "@sage-bionetworks/rjsf-core";
 
 import AddButton from "../AddButton/AddButton";
 import IconButton from "../IconButton/IconButton";

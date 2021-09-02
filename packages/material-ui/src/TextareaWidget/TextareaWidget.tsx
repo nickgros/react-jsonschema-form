@@ -1,6 +1,6 @@
 import React from "react";
 
-import { WidgetProps } from "@rjsf/core";
+import { WidgetProps } from "@sage-bionetworks/rjsf-core";
 
 import TextField from "@material-ui/core/TextField";
 

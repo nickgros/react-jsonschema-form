@@ -1,5 +1,5 @@
 import React from "react";
-import { FieldProps } from "@rjsf/core";
+import { FieldProps } from "@sage-bionetworks/rjsf-core";
 import { Label } from "@fluentui/react";
 
 const styles = {

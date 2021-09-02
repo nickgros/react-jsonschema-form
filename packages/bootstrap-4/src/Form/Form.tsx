@@ -1,4 +1,4 @@
-import { withTheme, FormProps } from "@rjsf/core";
+import { withTheme, FormProps } from "@sage-bionetworks/rjsf-core";
 
 import Theme from "../Theme";
 import { StatelessComponent } from "react";

@@ -1,5 +1,5 @@
 import React from "react";
-import { WidgetProps } from '@rjsf/core';
+import { WidgetProps } from '@sage-bionetworks/rjsf-core';
 
 const EmailWidget = (props: WidgetProps) => {
   const { registry } = props;

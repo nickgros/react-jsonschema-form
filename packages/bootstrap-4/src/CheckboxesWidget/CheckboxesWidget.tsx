@@ -1,6 +1,6 @@
 import React from "react";
 import Form from "react-bootstrap/Form";
-import { WidgetProps } from "@rjsf/core";
+import { WidgetProps } from "@sage-bionetworks/rjsf-core";
 
 const selectValue = (value: any, selected: any, all: any) => {
   const at = all.indexOf(value);

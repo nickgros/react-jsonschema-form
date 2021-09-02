@@ -1,5 +1,5 @@
 import React from "react";
-import { WidgetProps } from "@rjsf/core";
+import { WidgetProps } from "@sage-bionetworks/rjsf-core";
 import {
   DatePicker,
   DayOfWeek,
@@ -7,7 +7,7 @@ import {
   mergeStyleSets,
 } from "@fluentui/react";
 import _pick from "lodash/pick";
-import { utils } from "@rjsf/core";
+import { utils } from "@sage-bionetworks/rjsf-core";
 
 const { pad } = utils;
 

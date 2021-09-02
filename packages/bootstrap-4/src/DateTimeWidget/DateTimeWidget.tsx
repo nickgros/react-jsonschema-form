@@ -1,5 +1,5 @@
 import React from "react";
-import { utils, WidgetProps } from "@rjsf/core";
+import { utils, WidgetProps } from "@sage-bionetworks/rjsf-core";
 
 const { localToUTC, utcToLocal } = utils;
 

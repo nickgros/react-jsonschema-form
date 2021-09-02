@@ -1,6 +1,6 @@
 import React from "react";
 
-import { FieldProps } from "@rjsf/core";
+import { FieldProps } from "@sage-bionetworks/rjsf-core";
 
 import { Text } from "@fluentui/react";
 
