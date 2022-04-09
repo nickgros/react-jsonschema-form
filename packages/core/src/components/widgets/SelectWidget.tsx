@@ -35,12 +35,12 @@ function processValue(schema, value) {
   return value;
 }
 
-function getValue(event, multiple) {
+function getValue(event: React.ChangeEvent<HTMLSelectElement>, multiple: boolean) {
   if (multiple) {
     return [].slice
       .call(event.target.options)
-      .filter(o => o.selected)
-      .map(o => o.value);
+      .filter((o: HTMLOptionElement) => o.selected)
+      .map((o: HTMLOptionElement) => o.value);
   } else {
     return event.target.value;
   }

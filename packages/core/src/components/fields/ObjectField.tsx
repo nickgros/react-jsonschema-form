@@ -9,8 +9,9 @@ import {
   canExpand,
   ADDITIONAL_PROPERTY_FLAG,
 } from "../../utils";
+import { FieldProps, ObjectFieldTemplateProps } from "@rjsf/core";
 
-function DefaultObjectFieldTemplate(props) {
+function DefaultObjectFieldTemplate(props: ObjectFieldTemplateProps) {
   const { TitleField, DescriptionField } = props;
   return (
     <fieldset id={props.idSchema.$id}>
@@ -41,7 +42,7 @@ function DefaultObjectFieldTemplate(props) {
   );
 }
 
-class ObjectField extends Component {
+class ObjectField extends Component<FieldProps> {
   static defaultProps = {
     uiSchema: {},
     formData: {},
@@ -51,6 +52,8 @@ class ObjectField extends Component {
     disabled: false,
     readonly: false,
   };
+
+  static propTypes = {};
 
   state = {
     wasPropertyKeyModified: false,
@@ -209,7 +212,7 @@ class ObjectField extends Component {
         <div>
           <p className="config-error" style={{ color: "red" }}>
             Invalid {name || "root"} object field configuration:
-            <em>{err.message}</em>.
+            <em>{err instanceof Error ? err.message : JSON.stringify(err)}</em>.
           </p>
           <pre>{JSON.stringify(schema)}</pre>
         </div>
@@ -254,6 +257,7 @@ class ObjectField extends Component {
                 name,
                 addedByAdditionalProperties
               )}
+              formContext={formContext}
               onBlur={onBlur}
               onFocus={onFocus}
               registry={registry}

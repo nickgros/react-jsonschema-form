@@ -3,11 +3,13 @@ import Ajv from "ajv";
 let ajv = createAjvInstance();
 import { deepEquals, getDefaultFormState } from "./utils";
 
-let formerCustomFormats = null;
-let formerMetaSchema = null;
+let formerCustomFormats: any | null = null;
+let formerMetaSchema: any[] | null = null;
 const ROOT_SCHEMA_PREFIX = "__rjsf_rootSchema";
 
 import { isObject, mergeObjects } from "./utils";
+import { JSONSchema7 } from "json-schema";
+import { AjvError } from "@rjsf/core";
 
 function createAjvInstance() {
   const ajv = new Ajv({
@@ -101,8 +103,13 @@ export function toErrorList(errorSchema, fieldName = "root") {
   }, errorList);
 }
 
+type ErrorHandler = {
+  __errors: string[];
+  addError(message: string): void;
+}
+
 function createErrorHandler(formData) {
-  const handler = {
+  const handler: ErrorHandler = {
     // We store the list of errors for this node in a property named __errors
     // to avoid name collision with a possible sub schema field named
     // "errors" (see `utils.toErrorSchema`).
@@ -139,7 +146,7 @@ function unwrapErrorHandler(errorHandler) {
  * Transforming the error output from ajv to format used by jsonschema.
  * At some point, components should be updated to support ajv.
  */
-function transformAjvErrors(errors = []) {
+function transformAjvErrors(errors: Ajv.ErrorObject[] | null | undefined = []) {
   if (errors === null) {
     return [];
   }
@@ -166,11 +173,11 @@ function transformAjvErrors(errors = []) {
  * will be used to add custom validation errors for each field.
  */
 export default function validateFormData(
-  formData,
-  schema,
-  customValidate,
-  transformErrors,
-  additionalMetaSchemas = [],
+  formData: Record<string, any>,
+  schema: JSONSchema7,
+  customValidate?: Function,
+  transformErrors?: any,
+  additionalMetaSchemas: readonly object[] = [],
   customFormats = {}
 ) {
   // Include form data with undefined values, which is required for validation.
@@ -203,16 +210,18 @@ export default function validateFormData(
     formerCustomFormats = customFormats;
   }
 
-  let validationError = null;
+  let validationError: Error | null = null;
   try {
     ajv.validate(schema, formData);
   } catch (err) {
-    validationError = err;
+    if (err instanceof Error) {
+      validationError = err;
+    }
   }
 
-  let errors = transformAjvErrors(ajv.errors);
-  // Clear errors to prevent persistent errors, see #1104
+  let errors: (AjvError | Pick<AjvError, "stack">)[] = transformAjvErrors(ajv.errors);
 
+  // Clear errors to prevent persistent errors, see #1104
   ajv.errors = null;
 
   const noProperMetaSchema =
@@ -221,7 +230,7 @@ export default function validateFormData(
     typeof validationError.message === "string" &&
     validationError.message.includes("no schema with key or ref ");
 
-  if (noProperMetaSchema) {
+  if (noProperMetaSchema && validationError) {
     errors = [
       ...errors,
       {
@@ -235,7 +244,7 @@ export default function validateFormData(
 
   let errorSchema = toErrorSchema(errors);
 
-  if (noProperMetaSchema) {
+  if (noProperMetaSchema && validationError) {
     errorSchema = {
       ...errorSchema,
       ...{

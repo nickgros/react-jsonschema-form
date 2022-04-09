@@ -10,8 +10,18 @@ import {
   getMatchingOption,
   deepEquals,
 } from "../../utils";
+import { FieldProps } from "@rjsf/core";
 
-class AnyOfField extends Component {
+class AnyOfField<T extends Record<string, any>> extends Component<FieldProps<T>, { selectedOption: number}> {
+  static defaultProps = {
+    disabled: false,
+    errorSchema: {},
+    idSchema: {},
+    uiSchema: {},
+  };
+
+  static propTypes = {}
+
   constructor(props) {
     super(props);
 
@@ -66,7 +76,7 @@ class AnyOfField extends Component {
 
     // If the new option is of type object and the current data is an object,
     // discard properties added using the old option.
-    let newFormData = undefined;
+    let newFormData: T | undefined = undefined;
     if (
       guessType(formData) === "object" &&
       (newOption.type === "object" || newOption.properties)
@@ -113,6 +123,7 @@ class AnyOfField extends Component {
       registry,
       uiSchema,
       schema,
+      formContext,
     } = this.props;
 
     const _SchemaField = registry.fields.SchemaField;
@@ -168,19 +179,13 @@ class AnyOfField extends Component {
             onFocus={onFocus}
             registry={registry}
             disabled={disabled}
+            formContext={formContext}
           />
         )}
       </div>
     );
   }
 }
-
-AnyOfField.defaultProps = {
-  disabled: false,
-  errorSchema: {},
-  idSchema: {},
-  uiSchema: {},
-};
 
 if (process.env.NODE_ENV !== "production") {
   AnyOfField.propTypes = {

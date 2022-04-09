@@ -1,16 +1,15 @@
 {
-  // TODO: Put common tsconfig into a shared location
-  "include": ["src", "types"],
   "compilerOptions": {
+    "outDir": "./dist",
     "target": "es5",
     "module": "esnext",
     "lib": ["dom", "esnext"],
     "importHelpers": true,
     "declaration": true,
     "sourceMap": true,
-    "rootDir": "./src",
+    "rootDir": "./",
     "strict": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false, // TODO: set this to true
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strictPropertyInitialization": true,
@@ -18,7 +17,7 @@
     "alwaysStrict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": true,
+    "noImplicitReturns": false, // TODO: set this to true
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
@@ -28,6 +27,6 @@
     },
     "jsx": "react",
     "esModuleInterop": true,
-    "allowJs": true
+    "downlevelIteration": true
   }
 }

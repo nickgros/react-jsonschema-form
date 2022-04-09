@@ -1,3 +1,4 @@
+import { FieldProps } from "@rjsf/core";
 import React from "react";
 
 import * as types from "../../types";
@@ -32,7 +33,13 @@ const trailingCharMatcher = /[0.]0*$/;
  *    value cached in the state. If it matches the cached value, the cached
  *    value is passed to the input instead of the formData value
  */
-class NumberField extends React.Component {
+class NumberField extends React.Component<FieldProps, { lastValue: string }> {
+  static propTypes = {};
+
+  static defaultProps = {
+    uiSchema: {},
+  }
+
   constructor(props) {
     super(props);
 
@@ -91,9 +98,5 @@ class NumberField extends React.Component {
 if (process.env.NODE_ENV !== "production") {
   NumberField.propTypes = types.fieldProps;
 }
-
-NumberField.defaultProps = {
-  uiSchema: {},
-};
 
 export default NumberField;

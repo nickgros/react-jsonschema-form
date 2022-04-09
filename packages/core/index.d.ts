@@ -23,7 +23,7 @@ declare module '@rjsf/core' {
         enctype?: string;
         extraErrors?: any;
         ErrorList?: React.StatelessComponent<ErrorListProps>;
-        fields?: { [name: string]: Field };
+        fields?: Record<string, Field>;
         FieldTemplate?: React.StatelessComponent<FieldTemplateProps>;
         formContext?: any;
         formData?: T;
@@ -73,12 +73,21 @@ declare module '@rjsf/core' {
     export type UiSchema = {
         'ui:field'?: Field | string;
         'ui:widget'?: Widget | string;
-        'ui:options'?: { [key: string]: boolean | number | string | object | any[] | null };
+        'ui:options'?: UiOptions;
         'ui:order'?: string[];
-        'ui:FieldTemplate'?: React.StatelessComponent<FieldTemplateProps>;
-        'ui:ArrayFieldTemplate'?: React.StatelessComponent<ArrayFieldTemplateProps>;
-        'ui:ObjectFieldTemplate'?: React.StatelessComponent<ObjectFieldTemplateProps>;
+        'ui:FieldTemplate'?: React.FunctionComponent<FieldTemplateProps>;
+        'ui:ArrayFieldTemplate'?: React.FunctionComponent<ArrayFieldTemplateProps>;
+        'ui:ObjectFieldTemplate'?: React.FunctionComponent<ObjectFieldTemplateProps>;
         [name: string]: any;
+    };
+
+    export type UiOptions = { 
+        addable?: boolean
+        label?: boolean
+        expandable?: boolean
+        accept?: string
+        widget?: string
+        [key: string]: boolean | number | string | object | any[] | null | undefined
     };
 
     export type FieldId = {
@@ -127,12 +136,22 @@ declare module '@rjsf/core' {
 
     export type Widget = React.StatelessComponent<WidgetProps> | React.ComponentClass<WidgetProps>;
 
+    export type Fields = Record<string, Field> & {
+        DescriptionField: DescriptionField;
+        UnsupportedField: UnsupportedField;
+        TitleField: TitleField;
+    }
+
     export interface Registry {
-        fields: { [name: string]: Field };
-        widgets: { [name: string]: Widget };
-        definitions: { [name: string]: any };
+        fields: Fields;
+        widgets: Record<string, Widget>;
+        definitions: Record<string, any>;
         formContext: any;
         rootSchema: JSONSchema7;
+        // TODO: field templates should probably be somewhere else ?
+        FieldTemplate?: React.FunctionComponent<FieldTemplateProps>
+        ArrayFieldTemplate?: React.FunctionComponent<ArrayFieldTemplateProps>
+        ObjectFieldTemplate?: React.FunctionComponent<ObjectFieldTemplateProps>
     }
 
     export interface FieldProps<T = any>
@@ -147,15 +166,16 @@ declare module '@rjsf/core' {
         onFocus: (id: string, value: any) => void;
         registry: Registry;
         formContext: any;
-        autofocus: boolean;
-        disabled: boolean;
-        readonly: boolean;
-        required: boolean;
-        name: string;
+        autofocus?: boolean;
+        disabled?: boolean;
+        readonly?: boolean;
+        required?: boolean;
+        name?: string;
         [prop: string]: any; // Allow for other props
     }
 
-    export type Field = React.StatelessComponent<FieldProps> | React.ComponentClass<FieldProps>;
+    // TODO: Can we narrow the type for field?
+    export type Field = React.FunctionComponent<any> | React.FunctionComponent<FieldProps> | React.ComponentClass<FieldProps>;
 
     export type FieldTemplateProps<T = any> = {
         id: string;
@@ -184,12 +204,16 @@ declare module '@rjsf/core' {
         registry: Registry;
     };
 
+    type DescriptionField = React.FunctionComponent<{ id: string; description: string | React.ReactElement; formContext: any }>
+    type UnsupportedField = React.FunctionComponent<{ schema: JSONSchema7; idSchema: IdSchema; reason: string }>
+    type TitleField = React.FunctionComponent<{ id: string; title: string; required?: boolean; formContext: any }>;
+
     export type ArrayFieldTemplateProps<T = any> = {
-        DescriptionField: React.StatelessComponent<{ id: string; description: string | React.ReactElement }>;
-        TitleField: React.StatelessComponent<{ id: string; title: string; required: boolean }>;
+        DescriptionField: DescriptionField;
+        TitleField?: TitleField;
         canAdd: boolean;
         className: string;
-        disabled: boolean;
+        disabled?: boolean;
         idSchema: IdSchema;
         items: {
             children: React.ReactElement;
@@ -207,22 +231,23 @@ declare module '@rjsf/core' {
             key: string;
         }[];
         onAddClick: (event?: any) => void;
-        readonly: boolean;
-        required: boolean;
+        readonly?: boolean;
+        required?: boolean;
         schema: JSONSchema7;
         uiSchema: UiSchema;
-        title: string;
+        title?: string;
         formContext: any;
         formData: T;
         registry: Registry;
+        rawErrors: string[];
     };
 
     export type ObjectFieldTemplateProps<T = any> = {
-        DescriptionField: React.StatelessComponent<{ id: string; description: string | React.ReactElement }>;
-        TitleField: React.StatelessComponent<{ id: string; title: string; required: boolean }>;
+        DescriptionField: DescriptionField;
+        TitleField: TitleField;
         title: string;
         description: string;
-        disabled: boolean;
+        disabled?: boolean;
         properties: {
             content: React.ReactElement;
             name: string;
@@ -231,8 +256,8 @@ declare module '@rjsf/core' {
             hidden: boolean;
         }[];
         onAddClick: (schema: JSONSchema7) => () => void;
-        readonly: boolean;
-        required: boolean;
+        readonly?: boolean;
+        required?: boolean;
         schema: JSONSchema7;
         uiSchema: UiSchema;
         idSchema: IdSchema;
@@ -310,13 +335,13 @@ declare module '@rjsf/core' {
         export function getWidget(
             schema: JSONSchema7,
             widget: Widget | string,
-            registeredWidgets?: { [name: string]: Widget },
+            registeredWidgets?: Record<string, Widget>,
         ): Widget;
 
         export function hasWidget(
             schema: JSONSchema7,
             widget: Widget | string,
-            registeredWidgets?: { [name: string]: Widget },
+            registeredWidgets?: Record<string, Widget>,
         ): boolean;
 
         export function computeDefaults<T = any>(

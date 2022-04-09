@@ -1,7 +1,10 @@
+import { FieldProps } from "@rjsf/core";
 import { Component } from "react";
 import * as types from "../../types";
 
-class NullField extends Component {
+class NullField extends Component<FieldProps> {
+  static propTypes = {};
+
   componentDidMount() {
     if (this.props.formData === undefined) {
       this.props.onChange(null);

@@ -2,9 +2,10 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 
 import { shouldRender, parseDateString, toDateString, pad } from "../../utils";
+import { WidgetProps } from "@rjsf/core";
 
 function rangeOptions(start, stop) {
-  let options = [];
+  let options: { value: number, label: string }[] = [];
   for (let i = start; i <= stop; i++) {
     options.push({ value: i, label: pad(i, 2) });
   }
@@ -47,7 +48,16 @@ function DateElement(props) {
   );
 }
 
-class AltDateWidget extends Component {
+type AltDateWidgetState = {
+  year: number
+  month: number
+  day: number
+  hour?: number
+  minute?: number
+  second?: number
+}
+
+class AltDateWidget extends Component<WidgetProps, AltDateWidgetState> {
   static defaultProps = {
     time: false,
     disabled: false,
@@ -58,12 +68,14 @@ class AltDateWidget extends Component {
     },
   };
 
+  static propTypes = {};
+
   constructor(props) {
     super(props);
     this.state = parseDateString(props.value, props.time);
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     if (
       prevProps.value &&
       prevProps.value !== parseDateString(this.props.value, this.props.time)
@@ -76,9 +88,16 @@ class AltDateWidget extends Component {
     return shouldRender(this, nextProps, nextState);
   }
 
-  onChange = (property, value) => {
+  onChange = () => {
     this.setState(
-      { [property]: typeof value === "undefined" ? -1 : value },
+      { 
+        year: this.state.year,
+        month: this.state.month,
+        day: this.state.day,
+        hour: typeof this.state.hour === "undefined" ? -1 : this.state.hour,
+        minute: typeof this.state.minute === "undefined" ? -1 : this.state.minute,
+        second: typeof this.state.second === "undefined" ? -1 : this.state.second,
+       },
       () => {
         // Only propagate to parent state if we have a complete date{time}
         if (readyForChange(this.state)) {
@@ -121,9 +140,9 @@ class AltDateWidget extends Component {
     ];
     if (time) {
       data.push(
-        { type: "hour", range: [0, 23], value: hour },
-        { type: "minute", range: [0, 59], value: minute },
-        { type: "second", range: [0, 59], value: second }
+        { type: "hour", range: [0, 23], value: hour! },
+        { type: "minute", range: [0, 59], value: minute! },
+        { type: "second", range: [0, 59], value: second! }
       );
     }
     return data;

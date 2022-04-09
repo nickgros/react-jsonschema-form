@@ -14,6 +14,7 @@ import {
   getSchemaType,
   getDisplayLabel,
 } from "../../utils";
+import { SchemaFieldProps } from "@rjsf/core/lib/components/fields/SchemaField";
 
 const REQUIRED_FIELD_SYMBOL = "*";
 const COMPONENT_TYPES = {
@@ -405,8 +406,19 @@ function SchemaFieldRender(props) {
   );
 }
 
-class SchemaField extends React.Component {
-  shouldComponentUpdate(nextProps, nextState) {
+class SchemaField extends React.Component<SchemaFieldProps> {
+  static defaultProps = {
+    uiSchema: {},
+    errorSchema: {},
+    idSchema: {},
+    disabled: false,
+    readonly: false,
+    autofocus: false,
+  };
+
+  static propTypes = {}
+
+  shouldComponentUpdate(nextProps) {
     return !deepEquals(this.props, nextProps);
   }
 
@@ -414,15 +426,6 @@ class SchemaField extends React.Component {
     return SchemaFieldRender(this.props);
   }
 }
-
-SchemaField.defaultProps = {
-  uiSchema: {},
-  errorSchema: {},
-  idSchema: {},
-  disabled: false,
-  readonly: false,
-  autofocus: false,
-};
 
 if (process.env.NODE_ENV !== "production") {
   SchemaField.propTypes = {

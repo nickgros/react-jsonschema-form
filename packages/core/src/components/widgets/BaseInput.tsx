@@ -1,7 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
+import { WidgetProps } from "@rjsf/core";
 
-function BaseInput(props) {
+function BaseInput(props: WidgetProps) {
   // Note: since React 15.2.0 we can't forward unknown element attributes, so we
   // exclude the "options" and "schema" ones here.
   if (!props.id) {
@@ -75,12 +76,12 @@ function BaseInput(props) {
       autoFocus={autofocus}
       value={value == null ? "" : value}
       {...inputProps}
-      list={schema.examples ? `examples_${inputProps.id}` : null}
+      list={schema.examples ? `examples_${inputProps.id}` : undefined}
       onChange={_onChange}
       onBlur={onBlur && (event => onBlur(inputProps.id, event.target.value))}
       onFocus={onFocus && (event => onFocus(inputProps.id, event.target.value))}
     />,
-    schema.examples ? (
+    schema.examples && Array.isArray(schema.examples) ? (
       <datalist
         key={`datalist_${inputProps.id}`}
         id={`examples_${inputProps.id}`}>
@@ -88,8 +89,8 @@ function BaseInput(props) {
           ...new Set(
             schema.examples.concat(schema.default ? [schema.default] : [])
           ),
-        ].map(example => (
-          <option key={example} value={example} />
+        ].map((example) => (
+          <option key={example as string} value={example as string} />
         ))}
       </datalist>
     ) : null,

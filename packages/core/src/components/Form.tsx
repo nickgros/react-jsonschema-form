@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 import _pick from "lodash/pick";
 import _get from "lodash/get";
@@ -17,8 +17,24 @@ import {
 } from "../utils";
 import validateFormData, { toErrorList } from "../validate";
 import { mergeObjects } from "../utils";
+import { FormProps, Registry, UiSchema } from "@rjsf/core";
+import { JSONSchema7 } from "json-schema";
 
-export default class Form extends Component {
+type FormState<T> = {
+  edit: boolean,
+  schema: JSONSchema7,
+  uiSchema: UiSchema,
+  idSchema: any
+  formData: T
+  errorSchema: any
+  errors: any[]
+  schemaValidationErrors?: any[]
+  schemaValidationErrorSchema?: any
+  additionalMetaSchemas: any[]
+}
+
+export default class Form<T> extends React.Component<FormProps<T>, FormState<T>> {
+  static propTypes = {};
   static defaultProps = {
     uiSchema: {},
     noValidate: false,
@@ -30,6 +46,8 @@ export default class Form extends Component {
     omitExtraData: false,
   };
 
+  private formElement: any;
+
   constructor(props) {
     super(props);
     this.state = this.getStateFromProps(props, props.formData);
@@ -39,7 +57,7 @@ export default class Form extends Component {
     ) {
       this.props.onChange(this.state);
     }
-    this.formElement = null;
+    this.formElement = React.createRef();
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -54,7 +72,7 @@ export default class Form extends Component {
     this.setState(nextState);
   }
 
-  getStateFromProps(props, inputFormData) {
+  getStateFromProps(props, inputFormData): FormState<T> {
     const state = this.state || {};
     const schema = "schema" in props ? props.schema : this.props.schema;
     const uiSchema = "uiSchema" in props ? props.uiSchema : this.props.uiSchema;
@@ -121,7 +139,7 @@ export default class Form extends Component {
       props.idPrefix,
       props.idSeparator
     );
-    const nextState = {
+    const nextState: FormState<T> = {
       schema,
       uiSchema,
       idSchema,
@@ -165,7 +183,7 @@ export default class Form extends Component {
     const { errors, errorSchema, schema, uiSchema } = this.state;
     const { ErrorList, showErrorList, formContext } = this.props;
 
-    if (errors.length && showErrorList != false) {
+    if (ErrorList && errors.length && showErrorList != false) {
       return (
         <ErrorList
           errors={errors}
@@ -194,7 +212,7 @@ export default class Form extends Component {
   };
 
   getFieldNames = (pathSchema, formData) => {
-    const getAllPaths = (_obj, acc = [], paths = [""]) => {
+    const getAllPaths = (_obj, acc: string[] = [], paths = [""]) => {
       Object.keys(_obj).forEach(key => {
         if (typeof _obj[key] === "object") {
           let newPaths = paths.map(path => `${path}.${key}`);
@@ -228,7 +246,8 @@ export default class Form extends Component {
       formData = newState.formData;
     }
     const mustValidate = !this.props.noValidate && this.props.liveValidate;
-    let state = { formData };
+    // TODO: Types comment - Partial logically works but doesn't match what React types expects
+    let state: Partial<FormState<T>> = { formData };
     let newFormData = formData;
 
     if (this.props.omitExtraData === true && this.props.liveOmit === true) {
@@ -288,20 +307,20 @@ export default class Form extends Component {
       };
     }
     this.setState(
-      state,
+      state as FormState<T>,
       () => this.props.onChange && this.props.onChange(this.state)
     );
   };
 
-  onBlur = (...args) => {
+  onBlur = (id: string, value: any) => {
     if (this.props.onBlur) {
-      this.props.onBlur(...args);
+      this.props.onBlur(id, value);
     }
   };
 
-  onFocus = (...args) => {
+  onFocus = (id: string, value: any) => {
     if (this.props.onFocus) {
-      this.props.onFocus(...args);
+      this.props.onFocus(id, value);
     }
   };
 
@@ -397,7 +416,7 @@ export default class Form extends Component {
     );
   };
 
-  getRegistry() {
+  getRegistry(): Registry {
     // For BC, accept passed SchemaField and TitleField props and pass them to
     // the "fields" registry one.
     const { fields, widgets } = getDefaultRegistry();
@@ -466,11 +485,11 @@ export default class Form extends Component {
     // PropTypes.elementType to use for the inner tag so we'll need to pass `tagName` along if it is provided.
     // NOTE, the `as` prop is native to `semantic-ui` and is emulated in the `material-ui` theme
     const as = _internalFormWrapper ? tagName : undefined;
-    const FormTag = _internalFormWrapper || tagName || "form";
+    const FormTag = (_internalFormWrapper || tagName || "form") as  React.ElementType<any>;
     if (deprecatedAutocomplete) {
       console.warn(
         "Using autocomplete property of Form is deprecated, use autoComplete instead."
-      );
+    );
     }
     const autoComplete = currentAutoComplete
       ? currentAutoComplete
@@ -489,10 +508,10 @@ export default class Form extends Component {
         acceptCharset={acceptcharset}
         noValidate={noHtml5Validate}
         onSubmit={this.onSubmit}
-        as={as}
-        ref={form => {
+        as={(as) as string | undefined}
+        ref={((form) => {
           this.formElement = form;
-        }}>
+        })}>
         {this.renderErrors()}
         <_SchemaField
           schema={schema}

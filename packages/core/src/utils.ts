@@ -7,6 +7,8 @@ import jsonpointer from "jsonpointer";
 import fields from "./components/fields";
 import widgets from "./components/widgets";
 import validateFormData, { isValid } from "./validate";
+import { Fields, Registry, UiOptions, UiSchema, Widget } from "@rjsf/core";
+import { JSONSchema7 } from "json-schema";
 
 export const ADDITIONAL_PROPERTY_FLAG = "__additional_property";
 
@@ -78,10 +80,11 @@ export function canExpand(schema, uiSchema, formData) {
   return true;
 }
 
-export function getDefaultRegistry() {
+export function getDefaultRegistry(): Registry {
   return {
-    fields,
-    widgets,
+    // TODO - types
+    fields: fields as unknown as Fields,
+    widgets: widgets as unknown as Record<string, Widget>,
     definitions: {},
     rootSchema: {},
     formContext: {},
@@ -120,7 +123,13 @@ export function getWidget(schema, widget, registeredWidgets = {}) {
       const defaultOptions =
         (Widget.defaultProps && Widget.defaultProps.options) || {};
       Widget.MergedWidget = ({ options = {}, ...props }) => (
-        <Widget options={{ ...defaultOptions, ...options }} {...props} />
+        React.createElement(Widget, { 
+          options: {
+             ...defaultOptions,
+             ...options
+          },
+          ...props
+        })
       );
     }
     return Widget.MergedWidget;
@@ -161,6 +170,7 @@ export function hasWidget(schema, widget, registeredWidgets = {}) {
     return true;
   } catch (e) {
     if (
+      e instanceof Error &&
       e.message &&
       (e.message.startsWith("No widget") ||
         e.message.startsWith("Unsupported widget"))
@@ -362,7 +372,7 @@ export function mergeDefaultsWithFormData(defaults, formData) {
   }
 }
 
-export function getUiOptions(uiSchema) {
+export function getUiOptions(uiSchema: UiSchema): UiOptions {
   // get all passed options from ui:widget, ui:options, and ui:<optionName>
   return Object.keys(uiSchema)
     .filter(key => key.indexOf("ui:") === 0)
@@ -385,9 +395,8 @@ export function getUiOptions(uiSchema) {
     }, {});
 }
 
-export function getDisplayLabel(schema, uiSchema, rootSchema) {
-  const uiOptions = getUiOptions(uiSchema);
-  let { label: displayLabel = true } = uiOptions;
+export function getDisplayLabel(schema, uiSchema: UiSchema, rootSchema) {
+  let { label: displayLabel = true} = getUiOptions(uiSchema);
   const schemaType = getSchemaType(schema);
 
   if (schemaType === "array") {
@@ -559,11 +568,12 @@ export function isFixedItems(schema) {
 }
 
 export function isCustomWidget(uiSchema) {
+  const uiOptions = getUiOptions(uiSchema);
   return (
     // TODO: Remove the `&& uiSchema["ui:widget"] !== "hidden"` once we support hidden widgets for arrays.
     // https://react-jsonschema-form.readthedocs.io/en/latest/usage/widgets/#hidden-widgets
-    "widget" in getUiOptions(uiSchema) &&
-    getUiOptions(uiSchema)["widget"] !== "hidden"
+    "widget" in uiOptions &&
+    uiOptions["widget"] !== "hidden"
   );
 }
 
@@ -898,7 +908,7 @@ function withExactlyOneSubschema(
     }
     const { [dependencyKey]: conditionPropertySchema } = subschema.properties;
     if (conditionPropertySchema) {
-      const conditionSchema = {
+      const conditionSchema: JSONSchema7 = {
         type: "object",
         properties: {
           [dependencyKey]: conditionPropertySchema,
@@ -960,7 +970,7 @@ function isArguments(object) {
   return Object.prototype.toString.call(object) === "[object Arguments]";
 }
 
-export function deepEquals(a, b, ca = [], cb = []) {
+export function deepEquals(a, b, ca: any[] = [], cb: any[] = []) {
   // Partially extracted from node-deeper and adapted to exclude comparison
   // checks for functions.
   // https://github.com/othiym23/node-deeper
@@ -1088,7 +1098,8 @@ export function toIdSchema(
 }
 
 export function toPathSchema(schema, name = "", rootSchema, formData = {}) {
-  const pathSchema = {
+  // TODO: types
+  const pathSchema: any = {
     $name: name.replace(/^\./, ""),
   };
   if ("$ref" in schema || "dependencies" in schema || "allOf" in schema) {
@@ -1150,7 +1161,7 @@ export function parseDateString(dateString, includeTime = true) {
 }
 
 export function toDateString(
-  { year, month, day, hour = 0, minute = 0, second = 0 },
+  { year, month, day, hour = 0, minute = 0, second = 0 } : { year: number, month: number, day: number, hour?: number, minute?: number, second?: number },
   time = true
 ) {
   const utcTime = Date.UTC(year, month - 1, day, hour, minute, second);
@@ -1219,7 +1230,7 @@ export function dataURItoBlob(dataURI) {
 
   // Built the Uint8Array Blob parameter from the base64 string.
   const binary = atob(splitted[1]);
-  const array = [];
+  const array: number[] = [];
   for (let i = 0; i < binary.length; i++) {
     array.push(binary.charCodeAt(i));
   }
@@ -1229,8 +1240,9 @@ export function dataURItoBlob(dataURI) {
   return { blob, name };
 }
 
-export function rangeSpec(schema) {
-  const spec = {};
+export function rangeSpec(schema: JSONSchema7) {
+  // TODO: Type
+  const spec: any = {};
   if (schema.multipleOf) {
     spec.step = schema.multipleOf;
   }

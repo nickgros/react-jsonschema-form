@@ -1,9 +1,10 @@
 import React, { forwardRef } from "react";
 import PropTypes from "prop-types";
-import Form from "./";
+import Form from ".";
+import { Registry } from "@rjsf/core";
 
 function withTheme(themeProps) {
-  return forwardRef(({ fields, widgets, ...directProps }, ref) => {
+  return forwardRef(({ fields, widgets, ...directProps }: Registry, ref) => {
     fields = { ...themeProps.fields, ...fields };
     widgets = { ...themeProps.widgets, ...widgets };
 

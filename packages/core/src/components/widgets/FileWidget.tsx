@@ -1,20 +1,28 @@
-import React, { Component } from "react";
+import React, { ChangeEvent, Component } from "react";
 import PropTypes from "prop-types";
 
 import { dataURItoBlob, shouldRender } from "../../utils";
+import { WidgetProps } from "@rjsf/core";
 
-function addNameToDataURL(dataURL, name) {
+type FileInfo = {
+  dataURL: string,
+  name: string,
+  size: number,
+  type: string,
+}
+
+function addNameToDataURL(dataURL: string, name: string) {
   return dataURL.replace(";base64", `;name=${encodeURIComponent(name)};base64`);
 }
 
-function processFile(file) {
+function processFile(file: File): Promise<FileInfo> {
   const { name, size, type } = file;
-  return new Promise((resolve, reject) => {
+  return new Promise<FileInfo>((resolve, reject) => {
     const reader = new window.FileReader();
     reader.onerror = reject;
     reader.onload = event => {
       resolve({
-        dataURL: addNameToDataURL(event.target.result, name),
+        dataURL: addNameToDataURL(event?.target?.result as string, name),
         name,
         size,
         type,
@@ -24,8 +32,8 @@ function processFile(file) {
   });
 }
 
-function processFiles(files) {
-  return Promise.all([].map.call(files, processFile));
+function processFiles(files: File[] | null): Promise<FileInfo[]> {
+  return Promise.all<FileInfo>((files ?? []).map( processFile));
 }
 
 function FilesInfo(props) {
@@ -60,21 +68,32 @@ function extractFileInfo(dataURLs) {
     });
 }
 
-class FileWidget extends Component {
+class FileWidget extends Component<WidgetProps, {filesInfo: any, values: string[]}> {
+  static defaultProps = {
+    autofocus: false,
+  };
+
+  static propTypes = {};
+  private inputRef;
+
+
   constructor(props) {
     super(props);
     const { value } = props;
     const values = Array.isArray(value) ? value : [value];
     this.state = { values, filesInfo: extractFileInfo(values) };
+
+    this.inputRef = React.createRef();
   }
+
 
   shouldComponentUpdate(nextProps, nextState) {
     return shouldRender(this, nextProps, nextState);
   }
 
-  onChange = event => {
+  onChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { multiple, onChange } = this.props;
-    processFiles(event.target.files).then(filesInfo => {
+    processFiles(event.target.files as File[] | null).then(filesInfo => {
       const state = {
         values: filesInfo.map(fileInfo => fileInfo.dataURL),
         filesInfo,
@@ -96,7 +115,7 @@ class FileWidget extends Component {
       <div>
         <p>
           <input
-            ref={ref => (this.inputRef = ref)}
+            ref={this.inputRef}
             id={id}
             type="file"
             disabled={readonly || disabled}
@@ -112,10 +131,6 @@ class FileWidget extends Component {
     );
   }
 }
-
-FileWidget.defaultProps = {
-  autofocus: false,
-};
 
 if (process.env.NODE_ENV !== "production") {
   FileWidget.propTypes = {

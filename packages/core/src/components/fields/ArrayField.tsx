@@ -19,6 +19,8 @@ import {
   getDefaultRegistry,
 } from "../../utils";
 import { nanoid } from "nanoid";
+import { ArrayFieldTemplateProps, FieldProps } from "@rjsf/core";
+import { JSONSchema7 } from "json-schema";
 
 function ArrayFieldTitle({ TitleField, idSchema, title, required }) {
   if (!title) {
@@ -197,7 +199,9 @@ function keyedToPlainFormData(keyedFormData) {
   return keyedFormData.map(keyedItem => keyedItem.item);
 }
 
-class ArrayField extends Component {
+class ArrayField<T extends Array<Record<string, any>>> extends Component<FieldProps<T>, any> {
+  static propTypes = {}
+
   static defaultProps = {
     uiSchema: {},
     formData: [],
@@ -243,7 +247,10 @@ class ArrayField extends Component {
 
   get itemTitle() {
     const { schema } = this.props;
-    return schema.items.title || schema.items.description || "Item";
+    if (schema?.items) {
+      return schema.items['title'] || schema.items['description'];
+    }
+    return "Item";
   }
 
   isItemRequired(itemSchema) {
@@ -336,8 +343,8 @@ class ArrayField extends Component {
       if (this.props.errorSchema) {
         newErrorSchema = {};
         const errorSchema = this.props.errorSchema;
-        for (let i in errorSchema) {
-          i = parseInt(i);
+        for (let e in errorSchema) {
+          const i = parseInt(e);
           if (i < index) {
             newErrorSchema[i] = errorSchema[i];
           } else if (i > index) {
@@ -482,7 +489,7 @@ class ArrayField extends Component {
     const { TitleField, DescriptionField } = fields;
     const itemsSchema = retrieveSchema(schema.items, rootSchema);
     const formData = keyedToPlainFormData(this.state.keyedFormData);
-    const arrayProps = {
+    const arrayProps: ArrayFieldTemplateProps = {
       canAdd: this.canAddItem(formData),
       items: this.state.keyedFormData.map((keyedItem, index) => {
         const { key, item } = keyedItem;
@@ -530,7 +537,7 @@ class ArrayField extends Component {
     };
 
     // Check if a custom render function was passed in
-    const Component =
+    const Component: React.ComponentType<ArrayFieldTemplateProps> =
       uiSchema["ui:ArrayFieldTemplate"] ||
       ArrayFieldTemplate ||
       DefaultNormalArrayFieldTemplate;
@@ -696,17 +703,18 @@ class ArrayField extends Component {
     let items = this.props.formData;
     const { ArrayFieldTemplate, rootSchema, fields, formContext } = registry;
     const { TitleField } = fields;
-    const itemSchemas = schema.items.map((item, index) =>
+    const itemSchemas = (schema?.items) as Array<JSONSchema7> | undefined;
+    const resolvedItemSchemas = itemSchemas?.map((item, index) =>
       retrieveSchema(item, rootSchema, formData[index])
-    );
+    ) ?? [];
     const additionalSchema = allowAdditionalItems(schema)
       ? retrieveSchema(schema.additionalItems, rootSchema, formData)
       : null;
 
-    if (!items || items.length < itemSchemas.length) {
+    if (!items || items.length < resolvedItemSchemas.length) {
       // to make sure at least all fixed items are generated
       items = items || [];
-      items = items.concat(new Array(itemSchemas.length - items.length));
+      items = items.concat(new Array(resolvedItemSchemas.length - items.length)) as T;
     }
 
     // These are the props passed into the render function
@@ -718,10 +726,10 @@ class ArrayField extends Component {
       formData,
       items: this.state.keyedFormData.map((keyedItem, index) => {
         const { key, item } = keyedItem;
-        const additional = index >= itemSchemas.length;
+        const additional = index >= resolvedItemSchemas.length;
         const itemSchema = additional
           ? retrieveSchema(schema.additionalItems, rootSchema, item)
-          : itemSchemas[index];
+          : resolvedItemSchemas[index];
         const itemIdPrefix = idSchema.$id + "_" + index;
         const itemIdSchema = toIdSchema(
           itemSchema,
@@ -742,7 +750,7 @@ class ArrayField extends Component {
           key,
           index,
           canRemove: additional,
-          canMoveUp: index >= itemSchemas.length + 1,
+          canMoveUp: index >= resolvedItemSchemas.length + 1,
           canMoveDown: additional && index < items.length - 1,
           itemSchema,
           itemData: item,
@@ -770,7 +778,7 @@ class ArrayField extends Component {
       uiSchema["ui:ArrayFieldTemplate"] ||
       ArrayFieldTemplate ||
       DefaultFixedArrayFieldTemplate;
-    return <Template {...arrayProps} />;
+    return <Template {...arrayProps} registry={registry} DescriptionField={registry.fields["DescriptionField"]} />;
   }
 
   renderArrayFieldItem(props) {
@@ -804,7 +812,7 @@ class ArrayField extends Component {
       removable: true,
       ...uiSchema["ui:options"],
     };
-    const has = {
+    const has: any = {
       moveUp: orderable && canMoveUp,
       moveDown: orderable && canMoveDown,
       remove: removable && canRemove,
@@ -829,6 +837,7 @@ class ArrayField extends Component {
           readonly={this.props.readonly}
           autofocus={autofocus}
           rawErrors={rawErrors}
+          formContext={this.props.formContext}
         />
       ),
       className: "array-item",
