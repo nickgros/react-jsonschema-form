@@ -62,7 +62,7 @@
     "prop-types": "^15.7.2",
     "react-app-polyfill": "^1.0.4",
     "react-bootstrap": "^1.0.1",
-    "react-frame-component": "^4.1.1",
+    "react-frame-component": "^5.2.5",
     "react-is": "^16.9.0"
   },
   "devDependencies": {
