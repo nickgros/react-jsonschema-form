@@ -19,6 +19,7 @@ import {
   REF_KEY,
   PROPERTIES_KEY,
   ITEMS_KEY,
+  RJSF_RECURSIVE_SCHEMA_FLAG,
 } from '../constants';
 import findSchemaDefinition, { splitKeyElementFromObject } from '../findSchemaDefinition';
 import getDiscriminatorFieldFromSchema from '../getDiscriminatorFieldFromSchema';
@@ -259,7 +260,7 @@ export function resolveAllReferences<S extends StrictRJSFSchema = RJSFSchema>(
     const { $ref, ...localSchema } = resolvedSchema;
     // Check for a recursive reference and stop the loop
     if (recurseList.includes($ref!)) {
-      return resolvedSchema;
+      return { ...resolvedSchema, [RJSF_RECURSIVE_SCHEMA_FLAG]: true };
     }
     recurseList.push($ref!);
     // Retrieve the referenced schema definition.

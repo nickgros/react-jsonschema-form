@@ -1,6 +1,13 @@
 import get from 'lodash/get';
 
-import { retrieveSchema, RJSFSchema, createSchemaUtils, ADDITIONAL_PROPERTY_FLAG, PROPERTIES_KEY } from '../../src';
+import {
+  retrieveSchema,
+  RJSFSchema,
+  createSchemaUtils,
+  ADDITIONAL_PROPERTY_FLAG,
+  PROPERTIES_KEY,
+  RJSF_RECURSIVE_SCHEMA_FLAG,
+} from '../../src';
 import {
   getAllPermutationsOfXxxOf,
   resolveAnyOrOneOfSchemas,
@@ -254,10 +261,20 @@ export default function retrieveSchemaTest(testValidator: TestValidatorType) {
     });
     it('recursive ref should resolve once', () => {
       const result = retrieveSchema(testValidator, RECURSIVE_REF, RECURSIVE_REF);
-      expect(result).toEqual({
+      const expected = {
         definitions: RECURSIVE_REF.definitions,
         ...(RECURSIVE_REF.definitions!['@enum'] as RJSFSchema),
-      });
+        properties: {
+          ...(RECURSIVE_REF.definitions!['@enum'] as RJSFSchema).properties!,
+          children: {
+            ...((RECURSIVE_REF.definitions!['@enum'] as RJSFSchema).properties!.children as RJSFSchema),
+            // The recursive schema should have a flag to indicate recursion
+            [RJSF_RECURSIVE_SCHEMA_FLAG]: true,
+          },
+        },
+      };
+
+      expect(result).toEqual(expected);
     });
     it('recursive allof ref should resolve once', () => {
       const result = retrieveSchema(
