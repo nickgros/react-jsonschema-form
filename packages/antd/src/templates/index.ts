@@ -6,6 +6,7 @@ import BaseInputTemplate from './BaseInputTemplate';
 import DescriptionField from './DescriptionField';
 import ErrorList from './ErrorList';
 import { AddButton, CopyButton, MoveDownButton, MoveUpButton, RemoveButton } from './IconButton';
+import FallbackFieldTemplate from './FallbackFieldTemplate';
 import FieldErrorTemplate from './FieldErrorTemplate';
 import FieldTemplate from './FieldTemplate';
 import GridTemplate from './GridTemplate';
@@ -35,6 +36,7 @@ export function generateTemplates<
     },
     DescriptionFieldTemplate: DescriptionField,
     ErrorListTemplate: ErrorList,
+    FallbackFieldTemplate,
     FieldErrorTemplate,
     FieldTemplate,
     GridTemplate,
